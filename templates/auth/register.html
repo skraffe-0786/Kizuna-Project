@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sign Up - Kizuna{% endblock %}
+
+{% block content %}
+<div class="auth-bg" style="background-image: url('{% static 'kizuna.jpg.jpeg' %}')">
+    <div class="auth-overlay"></div>
+</div>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="logo-wrap">
+                <svg class="kizuna-icon" viewBox="0 0 48 48" width="52" height="52">
+                    <defs>
+                        <linearGradient id="kgR" x1="0" y1="0" x2="48" y2="48">
+                            <stop offset="0%" stop-color="#ff6b35"/>
+                            <stop offset="50%" stop-color="#e6683c"/>
+                            <stop offset="100%" stop-color="#d4457a"/>
+                        </linearGradient>
+                    </defs>
+                    <text x="24" y="38" text-anchor="middle" font-size="38" font-weight="900" font-family="serif" fill="url(#kgR)">絆</text>
+                </svg>
+                <h1 class="logo">Kizuna</h1>
+            </div>
+            <p class="tagline">Your Anime World.Your Community.Your Kizuna.</p>
+        </div>
+
+        <form method="post" class="auth-form" novalidate>
+            {% csrf_token %}
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="form-group">
+                <div class="input-wrapper">
+                    {{ form.username }}
+                </div>
+                {% if form.username.errors %}
+                    <span class="field-error">{{ form.username.errors.0 }}</span>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <div class="input-wrapper">
+                    {{ form.email }}
+                </div>
+                {% if form.email.errors %}
+                    <span class="field-error">{{ form.email.errors.0 }}</span>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <div class="input-wrapper">
+                    {{ form.password }}
+                </div>
+                {% if form.password.errors %}
+                    <span class="field-error">{{ form.password.errors.0 }}</span>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <div class="input-wrapper">
+                    {{ form.confirm_password }}
+                </div>
+                {% if form.confirm_password.errors %}
+                    <span class="field-error">{{ form.confirm_password.errors.0 }}</span>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn-primary">Sign Up</button>
+
+            <p class="terms">
+                By signing up, you agree to our <a href="#">Terms</a>,
+                <a href="#">Privacy Policy</a> and <a href="#">Cookies Policy</a>.
+            </p>
+        </form>
+    </div>
+
+    <div class="auth-card auth-switch">
+        <p>Have an account? <a href="{% url 'login' %}">Log in</a></p>
+    </div>
+</div>
+{% endblock %}

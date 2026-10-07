@@ -1,0 +1,38 @@
+{% extends 'base_app.html' %}
+
+{% block title %}Edit Post - Kizuna{% endblock %}
+
+{% block content %}
+<div class="edit-post-page">
+    <div class="page-header">
+        <a href="{% url 'home' %}" class="back-btn" title="Back">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,19 5,12 12,5"/></svg>
+        </a>
+        <h2>Edit Post</h2>
+    </div>
+
+    <div class="edit-post-card">
+        {% if post.image %}
+        <div class="edit-post-preview">
+            <img src="{{ post.image.url }}" alt="Current image">
+        </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Caption</label>
+                <textarea name="caption" rows="4" placeholder="Update your caption...">{{ post.caption }}</textarea>
+            </div>
+            <div class="form-group">
+                <label>Change Image (optional)</label>
+                {{ form.image }}
+            </div>
+            <div class="edit-post-actions">
+                <a href="{% url 'home' %}" class="btn-outline">Cancel</a>
+                <button type="submit" class="btn-post">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

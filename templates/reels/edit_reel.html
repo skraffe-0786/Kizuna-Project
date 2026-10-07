@@ -1,0 +1,32 @@
+{% extends 'base_app.html' %}
+
+{% block title %}Edit Reel - Kizuna{% endblock %}
+
+{% block content %}
+<div class="edit-post-page">
+    <div class="page-header">
+        <a href="{% url 'reel_detail' reel.id %}" class="back-btn" title="Back">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,19 5,12 12,5"/></svg>
+        </a>
+        <h2>Edit Reel</h2>
+    </div>
+
+    <div class="edit-post-card">
+        <div class="edit-post-preview">
+            <video src="{{ reel.video.url }}" controls style="width:100%;max-height:400px;border-radius:var(--radius);"></video>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Caption</label>
+                <textarea name="caption" rows="4" placeholder="Update your caption...">{{ reel.caption }}</textarea>
+            </div>
+            <div class="edit-post-actions">
+                <a href="{% url 'reel_detail' reel.id %}" class="btn-outline">Cancel</a>
+                <button type="submit" class="btn-post">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

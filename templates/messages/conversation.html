@@ -1,0 +1,509 @@
+{% extends 'base_app.html' %}
+
+{% block title %}Chat with {{ other_user.username }} - Kizuna{% endblock %}
+
+{% block content %}
+<div class="chat-page">
+    <div class="chat-header">
+        <a href="{% url 'inbox' %}" class="back-btn" title="Back">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,19 5,12 12,5"/></svg>
+        </a>
+        <a href="{% url 'profile' other_user.username %}" class="chat-user-info">
+            {% if other_user.profile.profile_pic %}
+                <img src="{{ other_user.profile.profile_pic.url }}" class="conv-avatar" alt="">
+            {% else %}
+                <div class="conv-avatar-placeholder">{{ other_user.username.0|upper }}</div>
+            {% endif %}
+            <span class="chat-user-name">
+                <strong>{{ other_user.username }}</strong>
+                {% if is_close_friend %}<span class="cf-star" title="Close Friend">&#9733;</span>{% endif %}
+            </span>
+        </a>
+        <div class="chat-header-actions">
+            <button class="chat-more-btn" onclick="this.parentElement.classList.toggle('open')" title="More options">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+            </button>
+            <div class="chat-more-dropdown">
+                {% if not is_blocked %}
+                <button class="cmd-item" onclick="openShareProfileFromChat()">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg>
+                    <span>Share Profile</span>
+                </button>
+                <button class="cmd-item" onclick="toggleCloseFriendChat({{ other_user.id }})">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="{% if is_close_friend %}var(--accent){% else %}none{% endif %}" stroke="currentColor" stroke-width="2" id="cf-star-icon"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <span id="chat-cf-label">{% if is_close_friend %}Remove Close Friend{% else %}Add Close Friend{% endif %}</span>
+                </button>
+                {% endif %}
+                <button class="cmd-item {% if is_blocked %}cmd-unblock{% else %}cmd-danger{% endif %}" onclick="toggleBlockChat({{ other_user.id }})">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                    <span id="chat-block-label">{% if is_blocked %}Unblock{% else %}Block{% endif %}</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-messages" id="chat-messages">
+        {% for msg in messages_list %}
+        <div class="chat-bubble-wrapper {% if msg.sender == request.user %}sent{% else %}received{% endif %}">
+            <div class="chat-bubble">
+                {% if msg.shared_post %}
+                <!-- Shared Post Card -->
+                <a href="{% url 'post_detail' msg.shared_post.id %}" class="shared-content-card">
+                    <div class="shared-card-header">
+                        <div class="shared-card-user">
+                            {% if msg.shared_post.user.profile.profile_pic %}
+                                <img src="{{ msg.shared_post.user.profile.profile_pic.url }}" class="shared-card-avatar" alt="">
+                            {% else %}
+                                <div class="shared-card-avatar-placeholder">{{ msg.shared_post.user.username.0|upper }}</div>
+                            {% endif %}
+                            <strong>{{ msg.shared_post.user.username }}</strong>
+                        </div>
+                        <span class="shared-card-badge">Post</span>
+                    </div>
+                    {% if msg.shared_post.image %}
+                    <div class="shared-card-image">
+                        <img src="{{ msg.shared_post.image.url }}" alt="Shared post" loading="lazy">
+                    </div>
+                    {% endif %}
+                    {% if msg.shared_post.caption %}
+                    <div class="shared-card-caption">
+                        <strong>{{ msg.shared_post.user.username }}</strong> {{ msg.shared_post.caption|truncatechars:100 }}
+                    </div>
+                    {% endif %}
+                    <div class="shared-card-footer">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                        <span>{{ msg.shared_post.likes_count }} likes</span>
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        <span>{{ msg.shared_post.comments_count }}</span>
+                    </div>
+                    <div class="shared-card-view">View Post</div>
+                </a>
+                {% elif msg.shared_reel %}
+                <!-- Shared Reel Card -->
+                <a href="{% url 'reel_detail' msg.shared_reel.id %}" class="shared-content-card shared-reel-card">
+                    <div class="shared-card-header">
+                        <div class="shared-card-user">
+                            {% if msg.shared_reel.user.profile.profile_pic %}
+                                <img src="{{ msg.shared_reel.user.profile.profile_pic.url }}" class="shared-card-avatar" alt="">
+                            {% else %}
+                                <div class="shared-card-avatar-placeholder">{{ msg.shared_reel.user.username.0|upper }}</div>
+                            {% endif %}
+                            <strong>{{ msg.shared_reel.user.username }}</strong>
+                        </div>
+                        <span class="shared-card-badge">
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+                            Reel
+                        </span>
+                    </div>
+                    {% if msg.shared_reel.video %}
+                    <div class="shared-card-image">
+                        <video src="{{ msg.shared_reel.video.url }}" preload="metadata" muted></video>
+                        <div class="shared-reel-play">
+                            <svg viewBox="0 0 24 24" width="32" height="32" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if msg.shared_reel.caption %}
+                    <div class="shared-card-caption">
+                        <strong>{{ msg.shared_reel.user.username }}</strong> {{ msg.shared_reel.caption|truncatechars:100 }}
+                    </div>
+                    {% endif %}
+                    <div class="shared-card-footer">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                        <span>{{ msg.shared_reel.likes_count }} likes</span>
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        <span>{{ msg.shared_reel.comments_count }}</span>
+                    </div>
+                    <div class="shared-card-view">View Reel</div>
+                </a>
+                {% elif msg.shared_profile %}
+                <!-- Shared Profile Card -->
+                <a href="{% url 'profile' msg.shared_profile.username %}" class="shared-content-card shared-profile-card">
+                    <div class="shared-card-header">
+                        <div class="shared-card-user">
+                            {% if msg.shared_profile.profile.profile_pic %}
+                                <img src="{{ msg.shared_profile.profile.profile_pic.url }}" class="shared-card-avatar" alt="">
+                            {% else %}
+                                <div class="shared-card-avatar-placeholder">{{ msg.shared_profile.username.0|upper }}</div>
+                            {% endif %}
+                            <strong>{{ msg.shared_profile.username }}</strong>
+                        </div>
+                        <span class="shared-card-badge">
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            Profile
+                        </span>
+                    </div>
+                    <div class="shared-profile-body">
+                        <div class="shared-profile-pic">
+                            {% if msg.shared_profile.profile.profile_pic %}
+                                <img src="{{ msg.shared_profile.profile.profile_pic.url }}" alt="{{ msg.shared_profile.username }}">
+                            {% else %}
+                                <div class="shared-profile-pic-placeholder">{{ msg.shared_profile.username.0|upper }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="shared-profile-stats">
+                            <div class="sp-stat"><strong>{{ msg.shared_profile.profile.posts_count }}</strong><span>Posts</span></div>
+                            <div class="sp-stat"><strong>{{ msg.shared_profile.profile.followers_count }}</strong><span>Followers</span></div>
+                            <div class="sp-stat"><strong>{{ msg.shared_profile.profile.following_count }}</strong><span>Following</span></div>
+                        </div>
+                        {% if msg.shared_profile.profile.bio %}
+                        <p class="shared-profile-bio">{{ msg.shared_profile.profile.bio|truncatechars:80 }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="shared-card-view">View Profile</div>
+                </a>
+                {% else %}
+                <p>{{ msg.content }}</p>
+                {% endif %}
+                <span class="msg-time">{{ msg.created_at|time:"H:i" }}</span>
+            </div>
+            <!-- Message Options -->
+            <div class="msg-options">
+                <button class="msg-options-btn" onclick="this.parentElement.classList.toggle('open')" title="Options">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                </button>
+                <div class="msg-options-menu">
+                    {% if not msg.shared_post and not msg.shared_reel and not msg.shared_profile %}
+                    <button onclick="copyMessage(this)" data-text="{{ msg.content }}">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        Copy
+                    </button>
+                    {% endif %}
+                    {% if msg.sender == request.user %}
+                    <form method="post" action="{% url 'unsend_message' msg.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="msg-opt-danger">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            Unsend
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-feed">
+            <p>Say hi to {{ other_user.username }}!</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if messaging_blocked %}
+    <div class="chat-blocked-bar">
+        {% if is_blocked %}
+            <p>You blocked this user. <button onclick="toggleBlockChat({{ other_user.id }})">Unblock</button></p>
+        {% else %}
+            <p>You can't message this user.</p>
+        {% endif %}
+    </div>
+    {% else %}
+    <form method="post" class="chat-input" id="chat-form">
+        {% csrf_token %}
+        <button type="button" class="emoji-toggle" onclick="document.getElementById('emoji-picker').classList.toggle('show')" title="Emoji">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+        </button>
+        <div class="emoji-picker" id="emoji-picker">
+            <div class="emoji-search-wrap">
+                <input type="text" id="msg-emoji-search" placeholder="Search emojis..." autocomplete="off">
+            </div>
+            <div class="emoji-tabs" id="msg-emoji-tabs">
+                <button type="button" class="emoji-tab active" data-cat="frequent">🕐</button>
+                <button type="button" class="emoji-tab" data-cat="smileys">😀</button>
+                <button type="button" class="emoji-tab" data-cat="people">👋</button>
+                <button type="button" class="emoji-tab" data-cat="hearts">❤️</button>
+                <button type="button" class="emoji-tab" data-cat="animals">🐱</button>
+                <button type="button" class="emoji-tab" data-cat="food">🍔</button>
+                <button type="button" class="emoji-tab" data-cat="travel">🌍</button>
+                <button type="button" class="emoji-tab" data-cat="activities">⚽</button>
+                <button type="button" class="emoji-tab" data-cat="objects">💡</button>
+                <button type="button" class="emoji-tab" data-cat="symbols">🔣</button>
+                <button type="button" class="emoji-tab" data-cat="flags">🏁</button>
+            </div>
+            <div class="emoji-panel" id="msg-emoji-panel"></div>
+        </div>
+        {{ form.content }}
+        <button type="submit" class="btn-send">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg>
+        </button>
+    </form>
+    {% endif %}
+    <div class="chat-toast" id="chat-toast"></div>
+
+    <!-- Share Profile Modal -->
+    <div class="share-profile-modal" id="share-profile-modal">
+        <div class="share-profile-content">
+            <div class="share-profile-header">
+                <h3>Share Profile</h3>
+                <button class="btn-icon" onclick="closeShareProfileModal()">&times;</button>
+            </div>
+            <div class="share-profile-preview">
+                <div class="share-profile-card-preview">
+                    {% if other_user.profile.profile_pic %}
+                        <img src="{{ other_user.profile.profile_pic.url }}" class="share-preview-avatar" alt="">
+                    {% else %}
+                        <div class="share-preview-avatar-placeholder">{{ other_user.username.0|upper }}</div>
+                    {% endif %}
+                    <div class="share-preview-info">
+                        <strong>{{ other_user.username }}</strong>
+                        <span>{{ other_user.profile.followers_count }} followers &middot; {{ other_user.profile.posts_count }} posts</span>
+                    </div>
+                </div>
+            </div>
+            <div class="share-profile-search-wrap">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" id="share-profile-search" placeholder="Search users to send to..." autocomplete="off">
+            </div>
+            <div class="share-profile-results" id="share-profile-results"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const chatBox = document.getElementById('chat-messages');
+if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+
+var msgEmojiData = {
+    frequent: ['😂','❤️','🔥','😍','😭','🥺','✨','😊','👏','💯','🙏','😎','💀','🤣','😤','👀','💪','🥰','😈','🫶'],
+    smileys: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🫡','🤐','🤨','😐','😑','😶','🫠','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🥴','😵','🤯','🥱','😤','😡','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖','😺','😸','😹','😻','😼','😽','🙀','😿','😾'],
+    people: ['👋','🤚','🖐️','✋','🖖','🫱','🫲','🫳','🫴','👌','🤌','🤏','✌️','🤞','🫰','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','🫵','👍','👎','✊','👊','🤛','🤜','👏','🙌','🫶','👐','🤲','🤝','🙏','✍️','💅','🤳','💪','🦾','🦿','🦵','🦶','👂','🦻','👃','🧠','🫀','🫁','🦷','🦴','👀','👁️','👅','👄','🫦','👶','🧒','👦','👧','🧑','👱','👨','🧔','👩','🧓','👴','👵','🙍','🙎','🙅','🙆','💁','🙋','🧏','🙇','🤦','🤷','👮','🕵️','💂','🥷','👷','🫅','🤴','👸','👳','👲','🧕','🤵','👰','🤰','🫃','🤱','👼','🎅','🤶','🦸','🦹','🧙','🧚','🧛','🧜','🧝','🧞','🧟','🧌','💆','💇','🚶','🧍','🧎','🏃','💃','🕺','🕴️','👯','🧖','🧗','🤸','⛹️','🏋️','🚴','🚵','🤼','🤽','🤾','🤺','🏇','⛷️','🏂','🏌️','🏄','🚣','🏊','🤿','🧘'],
+    hearts: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','❤️‍🔥','❤️‍🩹','♥️','🫀','💑','💏','💋','👄','💌','💐','🌹','🥀','🫶','🤍','🩷','🩵'],
+    animals: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐻‍❄️','🐨','🐯','🦁','🐮','🐷','🐽','🐸','🐵','🙈','🙉','🙊','🐒','🐔','🐧','🐦','🐤','🐣','🐥','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🪱','🐛','🦋','🐌','🐞','🐜','🪰','🪲','🪳','🦟','🦗','🕷️','🦂','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈','🪼','🐊','🐅','🐆','🦓','🦍','🦧','🐘','🦛','🦏','🐪','🐫','🦒','🦘','🦬','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🦮','🐕‍🦺','🐈','🐈‍⬛','🪶','🐓','🦃','🦤','🦚','🦜','🦢','🦩','🕊️','🐇','🦝','🦨','🦡','🦫','🦦','🦥','🐁','🐀','🐿️','🦔','🐾','🐉','🐲','🌵','🎄','🌲','🌳','🌴','🪵','🌱','🌿','☘️','🍀','🎍','🪴','🎋','🍃','🍂','🍁','🪺','🪹','🍄','🌾','💐','🌷','🌹','🥀','🌺','🌸','🌼','🌻','🌞','🌝','🌛','🌜','🌚','🌕','🌖','🌗','🌘','🌑','🌒','🌓','🌔','🌙','🌎','🌍','🌏','🪐','💫','⭐','🌟','✨','⚡','☄️','💥','🔥','🌪️','🌈','☀️','🌤️','⛅','🌥️','☁️','🌦️','🌧️','⛈️','🌩️','🌨️','❄️','☃️','⛄','🌬️','💨','💧','💦','🫧','☔','☂️','🌊','🌫️'],
+    food: ['🍏','🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑','🥦','🥬','🥒','🌶️','🫑','🌽','🥕','🫒','🧄','🧅','🥔','🍠','🫘','🥐','🍞','🥖','🥨','🧀','🥚','🍳','🧈','🥞','🧇','🥓','🥩','🍗','🍖','🌭','🍔','🍟','🍕','🫓','🥪','🥙','🧆','🌮','🌯','🫔','🥗','🥘','🫕','🥫','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🦪','🍤','🍙','🍚','🍘','🍥','🥠','🥮','🍢','🍡','🍧','🍨','🍦','🥧','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🥜','🍯','🥛','🍼','🫖','☕','🍵','🧃','🥤','🧋','🍶','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🧉','🍾','🧊','🥄','🍴','🍽️','🥣','🥡','🥢','🧂'],
+    travel: ['🌍','🌎','🌏','🗺️','🧭','🏔️','⛰️','🌋','🗻','🏕️','🏖️','🏜️','🏝️','🏞️','🏟️','🏛️','🏗️','🧱','🪨','🪵','🛖','🏘️','🏚️','🏠','🏡','🏢','🏣','🏤','🏥','🏦','🏨','🏩','🏪','🏫','🏬','🏭','🏯','🏰','💒','🗼','🗽','⛪','🕌','🛕','🕍','⛩️','🕋','⛲','⛺','🌁','🌃','🏙️','🌄','🌅','🌆','🌇','🌉','♨️','🎠','🛝','🎡','🎢','💈','🎪','🚂','🚃','🚄','🚅','🚆','🚇','🚈','🚉','🚊','🚝','🚞','🚋','🚌','🚍','🚎','🚐','🚑','🚒','🚓','🚔','🚕','🚖','🚗','🚘','🚙','🛻','🚚','🚛','🚜','🏎️','🏍️','🛵','🦽','🦼','🛺','🚲','🛴','🛹','🛼','🚏','🛣️','🛤️','🛢️','⛽','🛞','🚨','🚥','🚦','🛑','🚧','⚓','🛟','⛵','🛶','🚤','🛳️','⛴️','🛥️','🚢','✈️','🛩️','🛫','🛬','🪂','💺','🚁','🚟','🚠','🚡','🛰️','🚀','🛸','🌠','🌌','⛱️','🎆','🎇','🎑','🗾','🗿'],
+    activities: ['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🪀','🏓','🏸','🏒','🏑','🥍','🏏','🪃','🥅','⛳','🪁','🏹','🎣','🤿','🥊','🥋','🎽','🛹','🛼','🛷','⛸️','🥌','🎿','⛷️','🏂','🪂','🏋️','🤼','🤸','⛹️','🤺','🤾','🏌️','🏇','🧘','🏄','🏊','🤽','🚣','🧗','🚵','🚴','🏆','🥇','🥈','🥉','🏅','🎖️','🏵️','🎗️','🎫','🎟️','🎪','🤹','🎭','🩰','🎨','🎬','🎤','🎧','🎼','🎹','🥁','🪘','🎷','🎺','🪗','🎸','🪕','🎻','🪈','🎲','♟️','🎯','🎳','🎮','🕹️','🎰','🧩','🪅','🪩','🪆','🎴','🀄','🃏'],
+    objects: ['💡','🔦','🕯️','🪔','📱','💻','⌨️','🖥️','🖨️','🖱️','🖲️','💾','💿','📀','📷','📸','📹','🎥','📽️','🎞️','📞','☎️','📟','📠','📺','📻','🎙️','🎚️','🎛️','🧭','⏱️','⏲️','⏰','🕰️','⌛','⏳','📡','🔋','🪫','🔌','🔧','🔨','⚒️','🛠️','⛏️','🪚','🔩','⚙️','🪤','🧱','⛓️','🧲','🔫','💣','🧨','🪓','🔪','🗡️','⚔️','🛡️','🚬','⚰️','🪦','⚱️','🏺','🔮','📿','🧿','🪬','💈','⚗️','🔭','🔬','🕳️','🩹','🩺','🩻','🩼','💊','💉','🩸','🧬','🦠','🧫','🧪','🌡️','🧹','🪠','🧺','🧻','🚽','🚿','🛁','🪥','🪒','🧴','🧷','🧹','🧺','🔑','🗝️','🚪','🪑','🛋️','🛏️','🛌','🧸','🪆','🖼️','🪞','🪟','🛍️','🛒','🎁','🎈','🎏','🎀','🪄','🪅','🎊','🎉','🎎','🏮','🎐','🧧','✉️','📩','📨','📧','💌','📥','📤','📦','🏷️','🪧','📪','📫','📬','📭','📮','📯','📜','📃','📄','📑','🧾','📊','📈','📉','🗒️','🗓️','📆','📅','🗑️','📇','🗃️','🗳️','🗄️','📋','📁','📂','🗂️','🗞️','📰','📓','📔','📒','📕','📗','📘','📙','📚','📖','🔖','🧷','🔗','📎','🖇️','📐','📏','🧮','📌','📍','✂️','🖊️','🖋️','✒️','🖌️','🖍️','📝','✏️','🔍','🔎','🔏','🔐','🔒','🔓'],
+    symbols: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','🕉️','☸️','✡️','🔯','🕎','☯️','☦️','🛐','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🆔','⚛️','🉑','☢️','☣️','📴','📳','🈶','🈚','🈸','🈺','🈷️','✴️','🆚','💮','🉐','㊙️','㊗️','🈴','🈵','🈹','🈲','🅰️','🅱️','🆎','🆑','🅾️','🆘','❌','⭕','🛑','⛔','📛','🚫','💯','💢','♨️','🚷','🚯','🚳','🚱','🔞','📵','🚭','❗','❕','❓','❔','‼️','⁉️','🔅','🔆','〽️','⚠️','🚸','🔱','⚜️','🔰','♻️','✅','🈯','💹','❇️','✳️','❎','🌐','💠','Ⓜ️','🌀','💤','🏧','🚾','♿','🅿️','🛗','🈳','🈂️','🛂','🛃','🛄','🛅','🚹','🚺','🚼','⚧️','🚻','🚮','🎦','📶','🈁','🔣','ℹ️','🔤','🔡','🔠','🆖','🆗','🆙','🆒','🆕','🆓','0️⃣','1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','🔢','#️⃣','*️⃣','⏏️','▶️','⏸️','⏯️','⏹️','⏺️','⏭️','⏮️','⏩','⏪','⏫','⏬','◀️','🔼','🔽','➡️','⬅️','⬆️','⬇️','↗️','↘️','↙️','↖️','↕️','↔️','↪️','↩️','⤴️','⤵️','🔀','🔁','🔂','🔄','🔃','🎵','🎶','➕','➖','➗','✖️','🟰','♾️','💲','💱','™️','©️','®️','〰️','➰','➿','🔚','🔙','🔛','🔝','🔜','✔️','☑️','🔘','🔴','🟠','🟡','🟢','🔵','🟣','⚫','⚪','🟤','🔺','🔻','🔸','🔹','🔶','🔷','🔳','🔲','▪️','▫️','◾','◽','◼️','◻️','🟥','🟧','🟨','🟩','🟦','🟪','⬛','⬜','🟫','🔈','🔇','🔉','🔊','🔔','🔕','📣','📢','💬','💭','🗯️','♠️','♣️','♥️','♦️','🃏','🎴','🀄','🕐','🕑','🕒','🕓','🕔','🕕','🕖','🕗','🕘','🕙','🕚','🕛'],
+    flags: ['🏁','🚩','🎌','🏴','🏳️','🏳️‍🌈','🏳️‍⚧️','🏴‍☠️','🇯🇵','🇺🇸','🇬🇧','🇫🇷','🇩🇪','🇮🇹','🇪🇸','🇧🇷','🇰🇷','🇨🇳','🇮🇳','🇷🇺','🇦🇺','🇨🇦','🇲🇽','🇦🇷','🇨🇴','🇵🇪','🇨🇱','🇻🇪','🇪🇨','🇧🇴','🇵🇾','🇺🇾','🇵🇭','🇹🇭','🇻🇳','🇮🇩','🇲🇾','🇸🇬','🇹🇼','🇭🇰','🇳🇿','🇿🇦','🇳🇬','🇪🇬','🇰🇪','🇬🇭','🇪🇹','🇹🇿','🇺🇬','🇸🇦','🇦🇪','🇹🇷','🇮🇱','🇮🇶','🇮🇷','🇵🇰','🇧🇩','🇱🇰','🇳🇵','🇲🇲','🇰🇭','🇱🇦','🇲🇳','🇦🇫','🇵🇱','🇺🇦','🇷🇴','🇭🇺','🇨🇿','🇸🇰','🇭🇷','🇷🇸','🇧🇬','🇬🇷','🇵🇹','🇳🇱','🇧🇪','🇸🇪','🇳🇴','🇩🇰','🇫🇮','🇮🇸','🇮🇪','🇨🇭','🇦🇹','🇱🇺']
+};
+
+var msgCatNames = {frequent:'Frequently Used',smileys:'Smileys & Emotion',people:'People & Body',hearts:'Hearts & Love',animals:'Animals & Nature',food:'Food & Drink',travel:'Travel & Places',activities:'Activities',objects:'Objects',symbols:'Symbols',flags:'Flags'};
+var msgActiveCat = 'frequent';
+
+function renderMsgEmojiPanel(filter) {
+    var panel = document.getElementById('msg-emoji-panel');
+    panel.innerHTML = '';
+    var cats = filter ? Object.keys(msgEmojiData) : [msgActiveCat];
+    cats.forEach(function(cat) {
+        var emojis = msgEmojiData[cat];
+        if (filter) {
+            emojis = emojis.filter(function(e) { return e.indexOf(filter) !== -1; });
+            if (!emojis.length) return;
+        }
+        if (filter) {
+            var label = document.createElement('div');
+            label.className = 'emoji-cat-label';
+            label.textContent = msgCatNames[cat];
+            panel.appendChild(label);
+        }
+        var grid = document.createElement('div');
+        grid.className = 'emoji-grid';
+        emojis.forEach(function(e) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = e;
+            btn.onclick = function() { insertEmoji(e); };
+            grid.appendChild(btn);
+        });
+        panel.appendChild(grid);
+    });
+    if (!panel.innerHTML) {
+        panel.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">No emojis found</div>';
+    }
+}
+
+document.querySelectorAll('#msg-emoji-tabs .emoji-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('#msg-emoji-tabs .emoji-tab').forEach(function(t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        msgActiveCat = tab.dataset.cat;
+        document.getElementById('msg-emoji-search').value = '';
+        renderMsgEmojiPanel();
+    });
+});
+
+document.getElementById('msg-emoji-search').addEventListener('input', function() {
+    var q = this.value.trim().toLowerCase();
+    if (q) {
+        document.querySelectorAll('#msg-emoji-tabs .emoji-tab').forEach(function(t) { t.classList.remove('active'); });
+        renderMsgEmojiPanel(q);
+    } else {
+        document.querySelector('#msg-emoji-tabs .emoji-tab[data-cat="' + msgActiveCat + '"]').classList.add('active');
+        renderMsgEmojiPanel();
+    }
+});
+
+renderMsgEmojiPanel();
+
+function insertEmoji(emoji) {
+    var input = document.querySelector('.chat-input input[name="content"]');
+    input.value += emoji;
+    input.focus();
+}
+
+function copyMessage(btn) {
+    navigator.clipboard.writeText(btn.dataset.text);
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy'; }, 1500);
+    btn.closest('.msg-options').classList.remove('open');
+}
+
+function shareMessage(text) {
+    if (navigator.share) {
+        navigator.share({ text: text });
+    } else {
+        navigator.clipboard.writeText(text);
+        alert('Message copied to clipboard!');
+    }
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.msg-options')) {
+        document.querySelectorAll('.msg-options.open').forEach(m => m.classList.remove('open'));
+    }
+    if (!e.target.closest('.emoji-picker') && !e.target.closest('.emoji-toggle')) {
+        document.getElementById('emoji-picker').classList.remove('show');
+    }
+});
+
+document.querySelectorAll('.shared-card-video').forEach(function(container) {
+    var video = container.querySelector('video');
+    var playIcon = container.querySelector('.shared-reel-play');
+    video.addEventListener('play', function() { playIcon.style.display = 'none'; });
+    video.addEventListener('pause', function() { playIcon.style.display = 'flex'; });
+});
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.chat-header-actions')) {
+        document.querySelectorAll('.chat-header-actions.open').forEach(function(m) { m.classList.remove('open'); });
+    }
+});
+
+function showChatToast(msg) {
+    var t = document.getElementById('chat-toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 2200);
+}
+
+function toggleCloseFriendChat(userId) {
+    var fd = new FormData();
+    fd.append('user_id', userId);
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fetch('{% url "toggle_close_friend" %}', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        var label = document.getElementById('chat-cf-label');
+        var icon = document.getElementById('cf-star-icon');
+        var star = document.querySelector('.cf-star');
+        if (data.added) {
+            label.textContent = 'Remove Close Friend';
+            icon.setAttribute('fill', 'var(--accent)');
+            if (!star) {
+                var s = document.createElement('span');
+                s.className = 'cf-star';
+                s.title = 'Close Friend';
+                s.innerHTML = '&#9733;';
+                document.querySelector('.chat-user-name').appendChild(s);
+            }
+            showChatToast('Added to Close Friends');
+        } else {
+            label.textContent = 'Add Close Friend';
+            icon.setAttribute('fill', 'none');
+            if (star) star.remove();
+            showChatToast('Removed from Close Friends');
+        }
+        document.querySelector('.chat-header-actions').classList.remove('open');
+    });
+}
+
+function toggleBlockChat(userId) {
+    var fd = new FormData();
+    fd.append('user_id', userId);
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fetch('{% url "toggle_block_user" %}', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.blocked) {
+            showChatToast('User blocked');
+        } else {
+            showChatToast('User unblocked');
+        }
+        setTimeout(function() { location.reload(); }, 800);
+    });
+}
+
+// Share Profile from Chat
+function openShareProfileFromChat() {
+    document.getElementById('share-profile-modal').classList.add('show');
+    document.getElementById('share-profile-search').value = '';
+    document.getElementById('share-profile-results').innerHTML = '';
+    document.querySelector('.chat-header-actions').classList.remove('open');
+    setTimeout(function() { document.getElementById('share-profile-search').focus(); }, 100);
+}
+
+function closeShareProfileModal() {
+    document.getElementById('share-profile-modal').classList.remove('show');
+}
+
+document.getElementById('share-profile-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeShareProfileModal();
+});
+
+var shareSearchTimer = null;
+document.getElementById('share-profile-search').addEventListener('input', function() {
+    clearTimeout(shareSearchTimer);
+    var q = this.value.trim();
+    var results = document.getElementById('share-profile-results');
+    if (q.length < 1) { results.innerHTML = ''; return; }
+    shareSearchTimer = setTimeout(function() {
+        fetch('{% url "search_users_api" %}?q=' + encodeURIComponent(q))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                results.innerHTML = '';
+                data.users.forEach(function(u) {
+                    var div = document.createElement('div');
+                    div.className = 'share-user-item';
+                    div.innerHTML =
+                        '<div class="share-user-info">' +
+                            (u.pic_url ? '<img src="' + u.pic_url + '" class="share-user-avatar" alt="">' :
+                                '<div class="share-user-avatar-placeholder">' + u.initial + '</div>') +
+                            '<span>' + u.username + '</span>' +
+                        '</div>' +
+                        '<button class="share-send-btn" onclick="shareProfileToUser(\'' + u.username + '\', this)">Send</button>';
+                    results.appendChild(div);
+                });
+                if (!data.users.length) {
+                    results.innerHTML = '<p style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">No users found</p>';
+                }
+            });
+    }, 300);
+});
+
+function shareProfileToUser(username, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    var fd = new FormData();
+    fd.append('username', username);
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fetch('{% url "share_profile_to_user" other_user.username %}', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.status === 'ok') {
+                btn.textContent = 'Sent';
+                btn.classList.add('sent');
+                showChatToast('Profile sent to ' + username);
+            } else {
+                btn.textContent = 'Send';
+                btn.disabled = false;
+            }
+        })
+        .catch(function() {
+            btn.textContent = 'Send';
+            btn.disabled = false;
+        });
+}
+</script>
+{% endblock %}

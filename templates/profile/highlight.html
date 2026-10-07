@@ -1,0 +1,163 @@
+{% extends 'base_app.html' %}
+
+{% block title %}{{ highlight.name }} - {{ highlight.user.username }} - Kizuna{% endblock %}
+
+{% block content %}
+<div class="highlight-viewer">
+    <div class="highlight-viewer-container">
+        <!-- Progress bars -->
+        <div class="highlight-progress-bar">
+            {% if highlight.cover %}
+            <div class="highlight-progress-segment active" data-index="0">
+                <div class="highlight-progress-fill"></div>
+            </div>
+            {% endif %}
+            {% for item in highlight.items.all %}
+            <div class="highlight-progress-segment" data-index="{{ forloop.counter }}">
+                <div class="highlight-progress-fill"></div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Header -->
+        <div class="highlight-viewer-header">
+            <div class="highlight-viewer-info">
+                <a href="{% url 'profile' highlight.user.username %}" class="highlight-viewer-user">
+                    {% if highlight.user.profile.profile_pic %}
+                        <img src="{{ highlight.user.profile.profile_pic.url }}" class="highlight-viewer-avatar" alt="">
+                    {% else %}
+                        <div class="highlight-viewer-avatar-placeholder">{{ highlight.user.username.0|upper }}</div>
+                    {% endif %}
+                    <strong style="color:#fff">{{ highlight.user.username }}</strong>
+                </a>
+                <span class="highlight-viewer-name">{{ highlight.name }}</span>
+            </div>
+            {% if highlight.user == request.user %}
+            <div class="highlight-viewer-actions">
+                <form method="post" action="{% url 'add_highlight_item' highlight.id %}" enctype="multipart/form-data" class="highlight-add-form">
+                    {% csrf_token %}
+                    <label class="btn-outline" style="cursor:pointer">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Add
+                        <input type="file" name="image" accept="image/*" hidden onchange="this.closest('form').submit()">
+                    </label>
+                </form>
+                <form method="post" action="{% url 'delete_highlight' highlight.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-outline btn-outline-danger" title="Delete Highlight">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        Delete
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+            <a href="{% url 'profile' highlight.user.username %}" class="highlight-viewer-close">&times;</a>
+        </div>
+
+        <!-- Slides -->
+        {% if highlight.cover %}
+        <div class="highlight-slide active" data-index="0">
+            <img src="{{ highlight.cover.url }}" alt="Cover">
+        </div>
+        {% endif %}
+        {% for item in highlight.items.all %}
+        <div class="highlight-slide{% if not highlight.cover and forloop.first %} active{% endif %}" data-index="{{ forloop.counter }}">
+            <img src="{{ item.image.url }}" alt="">
+        </div>
+        {% empty %}
+        {% if not highlight.cover %}
+        <div class="highlight-slide active">
+            <p class="story-empty-msg" style="color:#fff">No items yet. Add images to this highlight.</p>
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        <!-- Tap zones -->
+        <div class="highlight-tap-zones">
+            <div class="highlight-tap-prev" id="hl-tap-prev"></div>
+            <div class="highlight-tap-next" id="hl-tap-next"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    const slides = document.querySelectorAll('.highlight-slide');
+    const segments = document.querySelectorAll('.highlight-progress-segment');
+    const total = slides.length;
+    if (total === 0) return;
+
+    const backUrl = '{% url "profile" highlight.user.username %}';
+    let current = 0;
+    const DURATION = 5000;
+    let timer = null;
+    let startTime = null;
+    let animFrame = null;
+
+    function showSlide(index) {
+        if (index < 0 || index >= total) {
+            window.location.href = backUrl;
+            return;
+        }
+        current = index;
+
+        slides.forEach(s => s.classList.remove('active'));
+        slides[current].classList.add('active');
+
+        segments.forEach(function(seg, i) {
+            var fill = seg.querySelector('.highlight-progress-fill');
+            seg.classList.remove('active', 'done');
+            if (i < current) {
+                seg.classList.add('done');
+                fill.style.width = '100%';
+            } else if (i === current) {
+                seg.classList.add('active');
+                fill.style.width = '0%';
+            } else {
+                fill.style.width = '0%';
+            }
+        });
+
+        startProgress();
+    }
+
+    function startProgress() {
+        if (timer) clearTimeout(timer);
+        if (animFrame) cancelAnimationFrame(animFrame);
+        startTime = Date.now();
+
+        function animate() {
+            var elapsed = Date.now() - startTime;
+            var pct = Math.min((elapsed / DURATION) * 100, 100);
+            var fill = segments[current].querySelector('.highlight-progress-fill');
+            fill.style.width = pct + '%';
+            if (pct < 100) {
+                animFrame = requestAnimationFrame(animate);
+            }
+        }
+        animFrame = requestAnimationFrame(animate);
+
+        timer = setTimeout(function() {
+            showSlide(current + 1);
+        }, DURATION);
+    }
+
+    document.getElementById('hl-tap-prev').addEventListener('click', function() {
+        showSlide(current - 1);
+    });
+    document.getElementById('hl-tap-next').addEventListener('click', function() {
+        showSlide(current + 1);
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowLeft') showSlide(current - 1);
+        if (e.key === 'ArrowRight') showSlide(current + 1);
+        if (e.key === 'Escape') window.location.href = backUrl;
+    });
+
+    showSlide(0);
+})();
+</script>
+{% endblock %}

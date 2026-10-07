@@ -1,0 +1,539 @@
+{% extends 'base_story.html' %}
+
+{% block title %}{{ story_user.username }}'s Stories - Kizuna{% endblock %}
+
+{% block content %}
+<div class="ig-story-overlay">
+    <!-- Logo / home link -->
+    <a href="{% url 'home' %}" class="ig-story-logo" title="Back to Kizuna">
+        <svg class="kizuna-icon" viewBox="0 0 48 48" width="28" height="28">
+            <defs><linearGradient id="kgS" x1="0" y1="0" x2="48" y2="48"><stop offset="0%" stop-color="#ff6b35"/><stop offset="50%" stop-color="#e6683c"/><stop offset="100%" stop-color="#d4457a"/></linearGradient></defs>
+            <text x="24" y="38" text-anchor="middle" font-size="38" font-weight="900" font-family="serif" fill="url(#kgS)">絆</text>
+        </svg>
+        <span>Kizuna</span>
+    </a>
+
+    <!-- Close button -->
+    <a href="{% url 'home' %}" class="ig-story-close-btn" title="Close">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </a>
+
+    <!-- Previous user preview -->
+    {% if prev_user %}
+    <a href="{% url 'view_stories' prev_user.id %}" class="ig-story-nav ig-story-nav-prev" title="{{ prev_user.username }}">
+        <div class="ig-story-nav-card">
+            <div class="ig-story-nav-avatar">
+                {% if prev_user.profile.profile_pic %}
+                <img src="{{ prev_user.profile.profile_pic.url }}" alt="">
+                {% else %}
+                <span>{{ prev_user.username.0|upper }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="15,18 9,12 15,6"/></svg>
+    </a>
+    {% endif %}
+
+    <!-- Main story card -->
+    <div class="ig-story-card" id="story-card">
+        <!-- Progress bars -->
+        <div class="ig-story-progress">
+            {% for story in stories %}
+            <div class="ig-progress-seg {% if forloop.first %}active{% endif %}" data-index="{{ forloop.counter0 }}">
+                <div class="ig-progress-fill"></div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Header -->
+        <div class="ig-story-header">
+            <a href="{% url 'profile' story_user.username %}" class="ig-story-user-info">
+                <div class="ig-story-avatar">
+                    {% if story_user.profile.profile_pic %}
+                    <img src="{{ story_user.profile.profile_pic.url }}" alt="">
+                    {% else %}
+                    <span>{{ story_user.username.0|upper }}</span>
+                    {% endif %}
+                </div>
+                <span class="ig-story-username">{{ story_user.username }}</span>
+                <span class="ig-story-time" id="story-time"></span>
+            </a>
+            <div class="ig-story-header-actions">
+                <button class="ig-story-hdr-btn" id="story-more-btn" title="More">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+                </button>
+                <div class="ig-story-more-menu" id="story-more-menu">
+                    {% if story_user == request.user %}
+                    <button id="story-delete-trigger" class="ig-menu-danger">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        Delete
+                    </button>
+                    {% else %}
+                    <button class="ig-menu-item" onclick="this.closest('.ig-story-more-menu').classList.remove('show');">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        Report
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Story slides -->
+        {% for story in stories %}
+        <div class="ig-story-slide {% if forloop.first %}active{% endif %}" data-index="{{ forloop.counter0 }}" data-time="{{ story.created_at|timesince }} ago" data-id="{{ story.id }}">
+            <img src="{{ story.image.url }}" alt="Story" draggable="false">
+        </div>
+        {% empty %}
+        <div class="ig-story-slide active">
+            <p class="ig-story-empty">No active stories</p>
+        </div>
+        {% endfor %}
+
+        <!-- Tap zones for prev/next slide -->
+        <div class="ig-story-tap-zones" id="tap-zones">
+            <div class="ig-tap-left" id="tap-prev"></div>
+            <div class="ig-tap-right" id="tap-next"></div>
+        </div>
+
+        <!-- Bottom section -->
+        {% if story_user != request.user and stories %}
+        <!-- Reply bar -->
+        <div class="ig-story-footer">
+            <div class="ig-story-reply-wrap">
+                <button type="button" class="ig-story-emoji-btn" id="story-emoji-toggle">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                </button>
+                <input type="text" class="ig-story-reply-input" id="story-reply-input" placeholder="Send message" autocomplete="off">
+                <button type="button" class="ig-story-send-btn" id="story-reply-send">Send</button>
+            </div>
+            <!-- Quick reactions -->
+            <div class="ig-story-reactions">
+                <button class="ig-react-btn" data-emoji="❤️">❤️</button>
+                <button class="ig-react-btn" data-emoji="😂">😂</button>
+                <button class="ig-react-btn" data-emoji="😮">😮</button>
+                <button class="ig-react-btn" data-emoji="😢">😢</button>
+                <button class="ig-react-btn" data-emoji="👏">👏</button>
+                <button class="ig-react-btn" data-emoji="🔥">🔥</button>
+                <button class="ig-react-btn" data-emoji="🎉">🎉</button>
+                <button class="ig-react-btn" data-emoji="💯">💯</button>
+            </div>
+        </div>
+
+        <!-- Emoji picker -->
+        <div class="ig-story-emoji-picker" id="story-emoji-picker">
+            <div class="emoji-search-wrap">
+                <input type="text" id="story-emoji-search" placeholder="Search emojis..." autocomplete="off">
+            </div>
+            <div class="emoji-tabs" id="story-emoji-tabs">
+                <button type="button" class="emoji-tab active" data-cat="frequent">🕐</button>
+                <button type="button" class="emoji-tab" data-cat="smileys">😀</button>
+                <button type="button" class="emoji-tab" data-cat="people">👋</button>
+                <button type="button" class="emoji-tab" data-cat="hearts">❤️</button>
+                <button type="button" class="emoji-tab" data-cat="animals">🐶</button>
+                <button type="button" class="emoji-tab" data-cat="food">🍕</button>
+                <button type="button" class="emoji-tab" data-cat="travel">✈️</button>
+                <button type="button" class="emoji-tab" data-cat="activities">⚽</button>
+                <button type="button" class="emoji-tab" data-cat="objects">💡</button>
+                <button type="button" class="emoji-tab" data-cat="symbols">🔣</button>
+                <button type="button" class="emoji-tab" data-cat="flags">🏁</button>
+            </div>
+            <div class="emoji-panel" id="story-emoji-panel"></div>
+        </div>
+        {% endif %}
+
+        <!-- Paused indicator -->
+        <div class="ig-story-paused" id="paused-indicator">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="#fff"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+        </div>
+    </div>
+
+    <!-- Next user preview -->
+    {% if next_user %}
+    <a href="{% url 'view_stories' next_user.id %}" class="ig-story-nav ig-story-nav-next" title="{{ next_user.username }}">
+        <div class="ig-story-nav-card">
+            <div class="ig-story-nav-avatar">
+                {% if next_user.profile.profile_pic %}
+                <img src="{{ next_user.profile.profile_pic.url }}" alt="">
+                {% else %}
+                <span>{{ next_user.username.0|upper }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="9,18 15,12 9,6"/></svg>
+    </a>
+    {% endif %}
+
+    <!-- Delete confirmation -->
+    {% if story_user == request.user %}
+    <div class="ig-story-delete-overlay" id="delete-overlay">
+        <div class="ig-story-delete-box">
+            <h3>Delete this story?</h3>
+            <div class="ig-delete-actions">
+                <a href="#" class="ig-delete-yes" id="delete-confirm">Delete</a>
+                <button class="ig-delete-no" id="delete-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Toast -->
+    <div class="ig-story-toast" id="story-toast">
+        <span id="story-toast-text">Reply sent!</span>
+    </div>
+
+    <!-- Heart animation container -->
+    <div class="ig-heart-burst" id="heart-burst">
+        <svg viewBox="0 0 24 24" width="80" height="80" fill="#ed4956"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    var slides = document.querySelectorAll('.ig-story-slide');
+    var segments = document.querySelectorAll('.ig-progress-seg');
+    var timeEl = document.getElementById('story-time');
+    var total = slides.length;
+    if (total === 0) return;
+
+    var current = 0;
+    var DURATION = 5000;
+    var timer = null;
+    var startTime = null;
+    var elapsed = 0;
+    var animFrame = null;
+    var paused = false;
+    var pausedIndicator = document.getElementById('paused-indicator');
+    var holdTimer = null;
+    var isHolding = false;
+
+    var prevUrl = {% if prev_user %}'{% url "view_stories" prev_user.id %}'{% else %}null{% endif %};
+    var nextUrl = {% if next_user %}'{% url "view_stories" next_user.id %}'{% else %}null{% endif %};
+
+    function showSlide(index) {
+        if (index < 0) {
+            if (prevUrl) { window.location.href = prevUrl; return; }
+            window.location.href = '{% url "home" %}';
+            return;
+        }
+        if (index >= total) {
+            if (nextUrl) { window.location.href = nextUrl; return; }
+            window.location.href = '{% url "home" %}';
+            return;
+        }
+        current = index;
+        elapsed = 0;
+
+        slides.forEach(function(s) { s.classList.remove('active'); });
+        slides[current].classList.add('active');
+
+        segments.forEach(function(seg, i) {
+            var fill = seg.querySelector('.ig-progress-fill');
+            seg.classList.remove('active', 'done');
+            if (i < current) { seg.classList.add('done'); fill.style.width = '100%'; }
+            else if (i === current) { seg.classList.add('active'); fill.style.width = '0%'; }
+            else { fill.style.width = '0%'; }
+        });
+
+        if (timeEl) timeEl.textContent = slides[current].dataset.time || '';
+        startProgress();
+    }
+
+    function startProgress() {
+        if (timer) clearTimeout(timer);
+        if (animFrame) cancelAnimationFrame(animFrame);
+        startTime = Date.now() - elapsed;
+        paused = false;
+
+        function animate() {
+            if (paused) return;
+            elapsed = Date.now() - startTime;
+            var pct = Math.min((elapsed / DURATION) * 100, 100);
+            var fill = segments[current].querySelector('.ig-progress-fill');
+            fill.style.width = pct + '%';
+            if (pct < 100) animFrame = requestAnimationFrame(animate);
+        }
+        animFrame = requestAnimationFrame(animate);
+        timer = setTimeout(function() {
+            if (!paused) showSlide(current + 1);
+        }, DURATION - elapsed);
+    }
+
+    function pauseStory() {
+        if (paused) return;
+        paused = true;
+        elapsed = Date.now() - startTime;
+        if (timer) clearTimeout(timer);
+        if (animFrame) cancelAnimationFrame(animFrame);
+    }
+
+    function resumeStory() {
+        if (!paused) return;
+        startProgress();
+    }
+
+    window.pauseStory = pauseStory;
+    window.resumeStory = resumeStory;
+
+    // Hold to pause (Instagram behavior)
+    var tapZones = document.getElementById('tap-zones');
+    tapZones.addEventListener('mousedown', function(e) {
+        holdTimer = setTimeout(function() {
+            isHolding = true;
+            pauseStory();
+            pausedIndicator.classList.add('show');
+        }, 200);
+    });
+    tapZones.addEventListener('mouseup', function(e) {
+        clearTimeout(holdTimer);
+        if (isHolding) {
+            isHolding = false;
+            pausedIndicator.classList.remove('show');
+            resumeStory();
+        }
+    });
+    tapZones.addEventListener('mouseleave', function() {
+        clearTimeout(holdTimer);
+        if (isHolding) {
+            isHolding = false;
+            pausedIndicator.classList.remove('show');
+            resumeStory();
+        }
+    });
+
+    // Touch support for mobile
+    tapZones.addEventListener('touchstart', function(e) {
+        holdTimer = setTimeout(function() {
+            isHolding = true;
+            pauseStory();
+            pausedIndicator.classList.add('show');
+        }, 200);
+    }, {passive: true});
+    tapZones.addEventListener('touchend', function(e) {
+        clearTimeout(holdTimer);
+        if (isHolding) {
+            isHolding = false;
+            pausedIndicator.classList.remove('show');
+            resumeStory();
+            e.preventDefault();
+        }
+    });
+
+    // Tap navigation (only fires if not holding)
+    document.getElementById('tap-prev').addEventListener('click', function() {
+        if (!isHolding) showSlide(current - 1);
+    });
+    document.getElementById('tap-next').addEventListener('click', function() {
+        if (!isHolding) showSlide(current + 1);
+    });
+
+    // Keyboard
+    document.addEventListener('keydown', function(e) {
+        if (e.target.tagName === 'INPUT') return;
+        if (e.key === 'ArrowLeft') showSlide(current - 1);
+        if (e.key === 'ArrowRight') showSlide(current + 1);
+        if (e.key === 'Escape') window.location.href = '{% url "home" %}';
+        if (e.key === ' ') { e.preventDefault(); paused ? resumeStory() : pauseStory(); }
+    });
+
+    // Three-dot menu & delete
+    var moreBtn = document.getElementById('story-more-btn');
+    var moreMenu = document.getElementById('story-more-menu');
+    var deleteTrigger = document.getElementById('story-delete-trigger');
+    var deleteOverlay = document.getElementById('delete-overlay');
+    var deleteConfirm = document.getElementById('delete-confirm');
+    var deleteCancel = document.getElementById('delete-cancel');
+
+    if (moreBtn) {
+        moreBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            pauseStory();
+            moreMenu.classList.toggle('show');
+        });
+        document.addEventListener('click', function(e) {
+            if (moreMenu && moreMenu.classList.contains('show') && !moreMenu.contains(e.target) && e.target !== moreBtn) {
+                moreMenu.classList.remove('show');
+                resumeStory();
+            }
+        });
+    }
+    if (deleteTrigger && deleteOverlay) {
+        deleteTrigger.addEventListener('click', function() {
+            moreMenu.classList.remove('show');
+            var storyId = slides[current].dataset.id;
+            deleteConfirm.href = '/stories/' + storyId + '/delete/';
+            deleteOverlay.classList.add('show');
+        });
+        deleteCancel.addEventListener('click', function() {
+            deleteOverlay.classList.remove('show');
+            resumeStory();
+        });
+        deleteOverlay.addEventListener('click', function(e) {
+            if (e.target === deleteOverlay) {
+                deleteOverlay.classList.remove('show');
+                resumeStory();
+            }
+        });
+    }
+
+    // Reply functionality
+    var replyInput = document.getElementById('story-reply-input');
+    var replySend = document.getElementById('story-reply-send');
+    var toast = document.getElementById('story-toast');
+    var toastText = document.getElementById('story-toast-text');
+    var replyUrl = '{% url "reply_story" story_user.id %}';
+
+    function showToast(msg) {
+        toastText.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(function() { toast.classList.remove('show'); }, 2500);
+    }
+
+    function sendReply() {
+        if (!replyInput) return;
+        var content = replyInput.value.trim();
+        if (!content) return;
+        var fd = new FormData();
+        fd.append('content', content);
+        fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        fetch(replyUrl, { method: 'POST', body: fd })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.status === 'ok') { replyInput.value = ''; showToast('Reply sent!'); }
+                else showToast(data.message || 'Error');
+            });
+    }
+
+    if (replySend) replySend.addEventListener('click', sendReply);
+    if (replyInput) {
+        replyInput.addEventListener('focus', function() { pauseStory(); });
+        replyInput.addEventListener('blur', function() {
+            var picker = document.getElementById('story-emoji-picker');
+            if (!picker || !picker.classList.contains('show')) resumeStory();
+        });
+        replyInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); sendReply(); }
+            e.stopPropagation();
+        });
+        replyInput.addEventListener('keyup', function(e) { e.stopPropagation(); });
+    }
+
+    // Quick reactions with heart burst
+    var heartBurst = document.getElementById('heart-burst');
+    document.querySelectorAll('.ig-react-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var emoji = btn.dataset.emoji;
+            var fd = new FormData();
+            fd.append('content', emoji);
+            fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            fetch(replyUrl, { method: 'POST', body: fd })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.status === 'ok') showToast('Sent ' + emoji);
+                });
+            btn.classList.add('pop');
+            setTimeout(function() { btn.classList.remove('pop'); }, 500);
+            if (emoji === '❤️' && heartBurst) {
+                heartBurst.classList.add('show');
+                setTimeout(function() { heartBurst.classList.remove('show'); }, 1000);
+            }
+        });
+    });
+
+    // Double-tap to heart (Instagram behavior)
+    var lastTap = 0;
+    document.getElementById('tap-next').addEventListener('dblclick', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (heartBurst) {
+            heartBurst.classList.add('show');
+            setTimeout(function() { heartBurst.classList.remove('show'); }, 1000);
+        }
+        var fd = new FormData();
+        fd.append('content', '❤️');
+        fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        fetch(replyUrl, { method: 'POST', body: fd });
+    });
+
+    // Emoji picker
+    var emojiToggle = document.getElementById('story-emoji-toggle');
+    var emojiPicker = document.getElementById('story-emoji-picker');
+
+    if (emojiToggle && emojiPicker) {
+        emojiToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var isOpen = emojiPicker.classList.toggle('show');
+            if (isOpen) pauseStory(); else resumeStory();
+        });
+        document.addEventListener('click', function(e) {
+            if (emojiPicker.classList.contains('show') && !emojiPicker.contains(e.target) && e.target !== emojiToggle && !emojiToggle.contains(e.target)) {
+                emojiPicker.classList.remove('show');
+                if (document.activeElement !== replyInput) resumeStory();
+            }
+        });
+    }
+
+    var storyEmojiData = {
+        frequent: ['😂','❤️','🔥','😍','😭','🥺','✨','😊','👏','💯','🙏','😎','💀','🤣','😤','👀','💪','🥰','😈','🫶'],
+        smileys: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🫡','🤐','🤨','😐','😑','😶','🫠','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🥴','😵','🤯','🥱','😤','😡','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖'],
+        people: ['👋','🤚','🖐️','✋','🖖','👌','🤌','🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','☝️','👍','👎','✊','👊','🤛','🤜','👏','🙌','🫶','👐','🤲','🤝','🙏','✍️','💅','🤳','💪'],
+        hearts: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','❤️‍🔥','❤️‍🩹','🩷','🩵'],
+        animals: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🐦','🦆','🦅','🦉','🐺','🐴','🦄','🐝','🦋','🐌','🐞','🐢','🐍','🦖','🐙','🦑','🐬','🐳','🦈','🐊','🐘','🦒','🐾','🐉','🐲'],
+        food: ['🍏','🍎','🍊','🍋','🍌','🍉','🍇','🍓','🍒','🍑','🥭','🍍','🥝','🍅','🍆','🥑','🌽','🥕','🍔','🍟','🍕','🌮','🍜','🍣','🍦','🎂','🍩','🍪','☕','🧋','🍺','🍷'],
+        travel: ['🌍','🏔️','🌋','🏖️','🏜️','🏙️','🌅','🌉','🎡','🎢','🚗','🚀','✈️','🛸','🌠','🌌'],
+        activities: ['⚽','🏀','🎾','🏐','🎱','🏓','🥊','🎽','🏆','🥇','🎖️','🎪','🎭','🎨','🎬','🎤','🎧','🎸','🎮','🕹️','🎯','🧩'],
+        objects: ['💡','📱','💻','📷','🎥','📺','🎙️','⏰','🔧','⚙️','🔮','💊','🔑','🚪','🎁','🎈','🎉','✉️','📦','📚','✏️','🔍','🔒'],
+        symbols: ['❤️','💔','💯','💢','✨','⭐','🔥','💫','❗','❓','✅','❌','⭕','🔴','🟠','🟡','🟢','🔵','🟣','⚫','⚪','🔶','🔷','▶️','⏸️','🔀','🎵','🎶','➕','➖','💲','™️','©️','®️'],
+        flags: ['🏁','🚩','🎌','🏴','🏳️','🏳️‍🌈','🏴‍☠️','🇯🇵','🇺🇸','🇬🇧','🇫🇷','🇩🇪','🇮🇹','🇪🇸','🇧🇷','🇰🇷','🇨🇳','🇮🇳','🇷🇺','🇦🇺','🇨🇦']
+    };
+    var storyCatNames = {frequent:'Frequently Used',smileys:'Smileys & Emotion',people:'People & Body',hearts:'Hearts & Love',animals:'Animals & Nature',food:'Food & Drink',travel:'Travel & Places',activities:'Activities',objects:'Objects',symbols:'Symbols',flags:'Flags'};
+    var storyActiveCat = 'frequent';
+
+    function renderStoryEmojiPanel(filter) {
+        var panel = document.getElementById('story-emoji-panel');
+        if (!panel) return;
+        panel.innerHTML = '';
+        var cats = filter ? Object.keys(storyEmojiData) : [storyActiveCat];
+        cats.forEach(function(cat) {
+            var emojis = storyEmojiData[cat];
+            if (filter) { emojis = emojis.filter(function(e) { return e.indexOf(filter) !== -1; }); if (!emojis.length) return; }
+            if (filter) { var l = document.createElement('div'); l.className = 'emoji-cat-label'; l.textContent = storyCatNames[cat]; panel.appendChild(l); }
+            var grid = document.createElement('div');
+            grid.className = 'emoji-grid';
+            emojis.forEach(function(e) {
+                var btn = document.createElement('button'); btn.type = 'button'; btn.textContent = e;
+                btn.onclick = function() { var inp = document.getElementById('story-reply-input'); if (inp) { inp.value += e; inp.focus(); } };
+                grid.appendChild(btn);
+            });
+            panel.appendChild(grid);
+        });
+        if (!panel.innerHTML) panel.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4);font-size:13px;">No emojis found</div>';
+    }
+
+    document.querySelectorAll('#story-emoji-tabs .emoji-tab').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('#story-emoji-tabs .emoji-tab').forEach(function(t) { t.classList.remove('active'); });
+            tab.classList.add('active');
+            storyActiveCat = tab.dataset.cat;
+            var s = document.getElementById('story-emoji-search'); if (s) s.value = '';
+            renderStoryEmojiPanel();
+        });
+    });
+
+    var storyEmojiSearch = document.getElementById('story-emoji-search');
+    if (storyEmojiSearch) {
+        storyEmojiSearch.addEventListener('input', function() {
+            var q = this.value.trim().toLowerCase();
+            if (q) { document.querySelectorAll('#story-emoji-tabs .emoji-tab').forEach(function(t) { t.classList.remove('active'); }); renderStoryEmojiPanel(q); }
+            else { document.querySelector('#story-emoji-tabs .emoji-tab[data-cat="' + storyActiveCat + '"]').classList.add('active'); renderStoryEmojiPanel(); }
+        });
+        storyEmojiSearch.addEventListener('keydown', function(e) { e.stopPropagation(); });
+    }
+
+    renderStoryEmojiPanel();
+    showSlide(0);
+})();
+</script>
+{% endblock %}

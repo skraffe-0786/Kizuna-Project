@@ -1,0 +1,65 @@
+{% extends 'base_app.html' %}
+
+{% block title %}Saved Posts - Kizuna{% endblock %}
+
+{% block content %}
+<div class="saved-page">
+    <div class="page-header">
+        <a href="{% url 'home' %}" class="back-btn" title="Back">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,19 5,12 12,5"/></svg>
+        </a>
+        <h2>Saved Posts</h2>
+    </div>
+
+    <div class="saved-feed">
+        {% for item in saved %}
+        <article class="post-card">
+            <div class="post-header">
+                <a href="{% url 'profile' item.post.user.username %}" class="post-user-info">
+                    {% if item.post.user.profile.profile_pic %}
+                        <img src="{{ item.post.user.profile.profile_pic.url }}" alt="{{ item.post.user.username }}" class="post-avatar">
+                    {% else %}
+                        <div class="post-avatar-placeholder">{{ item.post.user.username.0|upper }}</div>
+                    {% endif %}
+                    <div>
+                        <strong>{{ item.post.user.username }}</strong>
+                        <span class="post-time">{{ item.post.created_at|timesince }} ago</span>
+                    </div>
+                </a>
+            </div>
+
+            {% if item.post.image %}
+            <div class="post-image">
+                <img src="{{ item.post.image.url }}" alt="Post image" loading="lazy">
+            </div>
+            {% endif %}
+
+            {% if item.post.caption %}
+            <div class="post-caption">
+                <strong>{{ item.post.user.username }}</strong> {{ item.post.caption }}
+            </div>
+            {% endif %}
+
+            <div class="post-actions">
+                <a href="{% url 'like_post' item.post.id %}" class="action-btn {% if item.post.id in liked_ids %}liked{% endif %}">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="{% if item.post.id in liked_ids %}#ed4956{% else %}none{% endif %}" stroke="{% if item.post.id in liked_ids %}#ed4956{% else %}currentColor{% endif %}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    <span>{{ item.post.likes_count }}</span>
+                </a>
+                <a href="{% url 'share_post' item.post.id %}" class="action-btn">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg>
+                </a>
+                <a href="{% url 'save_post' item.post.id %}" class="action-btn save-btn saved" title="Unsave">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                </a>
+            </div>
+        </article>
+        {% empty %}
+        <div class="empty-feed">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#8e8e8e" stroke-width="1.5"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <h3>No saved posts</h3>
+            <p>Bookmark posts you want to see again.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

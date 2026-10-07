@@ -1,0 +1,36 @@
+{% extends 'base_app.html' %}
+
+{% block title %}Notifications - Kizuna{% endblock %}
+
+{% block content %}
+<div class="notifications-page">
+    <div class="page-header">
+        <a href="{% url 'home' %}" class="back-btn" title="Back">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,19 5,12 12,5"/></svg>
+        </a>
+        <h2>Notifications</h2>
+    </div>
+    <div class="notif-list">
+        {% for notif in notifications %}
+        <div class="notif-item {% if not notif.is_read %}unread{% endif %}">
+            <a href="{% url 'profile' notif.sender.username %}">
+                {% if notif.sender.profile.profile_pic %}
+                    <img src="{{ notif.sender.profile.profile_pic.url }}" class="notif-avatar" alt="">
+                {% else %}
+                    <div class="notif-avatar-placeholder">{{ notif.sender.username.0|upper }}</div>
+                {% endif %}
+            </a>
+            <div class="notif-content">
+                <p>{{ notif.text }}</p>
+                <span class="notif-time">{{ notif.created_at|timesince }} ago</span>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-feed">
+            <h3>No notifications</h3>
+            <p>When someone interacts with you, you'll see it here.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

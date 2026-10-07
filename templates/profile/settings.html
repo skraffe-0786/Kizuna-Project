@@ -1,0 +1,448 @@
+{% extends 'base_app.html' %}
+
+{% block title %}Settings - Kizuna{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+    <div class="page-header" style="margin-bottom:16px;">
+        <a href="{% url 'profile' request.user.username %}" class="back-btn" title="Back">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,19 5,12 12,5"/></svg>
+        </a>
+        <h2>Settings</h2>
+    </div>
+
+    {% if messages %}
+    <div class="settings-messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="settings-container">
+        <!-- Saved Images -->
+        <div class="settings-section" id="saved">
+            <div class="settings-section-header" onclick="toggleSection(this)">
+                <div class="settings-section-title">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                    <span>Saved Images</span>
+                </div>
+                <svg class="settings-chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,9 12,15 18,9"/></svg>
+            </div>
+            <div class="settings-section-body">
+                {% if saved_posts %}
+                <div class="saved-grid">
+                    {% for sp in saved_posts %}
+                    <a href="{% url 'post_detail' sp.post.id %}" class="saved-grid-item">
+                        {% if sp.post.image %}
+                        <img src="{{ sp.post.image.url }}" alt="Saved post" loading="lazy">
+                        {% else %}
+                        <div class="saved-text-thumb">{{ sp.post.caption|truncatechars:40 }}</div>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="settings-empty">No saved posts yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Change Password -->
+        <div class="settings-section" id="password">
+            <a href="{% url 'change_password' %}" class="settings-section-header settings-link">
+                <div class="settings-section-title">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <span>Change Password</span>
+                </div>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>
+            </a>
+        </div>
+
+        <!-- Your Activity -->
+        <div class="settings-section" id="activity">
+            <div class="settings-section-header" onclick="toggleSection(this)">
+                <div class="settings-section-title">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+                    <span>Your Activity</span>
+                </div>
+                <svg class="settings-chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,9 12,15 18,9"/></svg>
+            </div>
+            <div class="settings-section-body">
+                <div class="settings-activity-stats">
+                    <div class="activity-stat">
+                        <strong>{{ request.user.posts.count }}</strong>
+                        <span>Posts</span>
+                    </div>
+                    <div class="activity-stat">
+                        <strong>{{ request.user.profile.followers_count }}</strong>
+                        <span>Followers</span>
+                    </div>
+                    <div class="activity-stat">
+                        <strong>{{ request.user.profile.following_count }}</strong>
+                        <span>Following</span>
+                    </div>
+                </div>
+                <p class="settings-info-text">Manage your time on Kizuna and see how you interact with the community.</p>
+            </div>
+        </div>
+
+        <!-- Account Privacy -->
+        <div class="settings-section" id="privacy">
+            <div class="settings-section-header" onclick="toggleSection(this)">
+                <div class="settings-section-title">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <span>Account Privacy</span>
+                </div>
+                <svg class="settings-chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,9 12,15 18,9"/></svg>
+            </div>
+            <div class="settings-section-body">
+                <div class="settings-toggle-row">
+                    <div>
+                        <strong>Private Account</strong>
+                        <p class="settings-info-text">When your account is private, only people you approve can see your photos and videos.</p>
+                    </div>
+                    <label class="settings-toggle">
+                        <input type="checkbox" id="toggle-private" {% if request.user.profile.is_private %}checked{% endif %} onchange="saveSetting('is_private', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="settings-save-indicator" id="privacy-saved"></div>
+            </div>
+        </div>
+
+        <!-- Close Friends -->
+        <div class="settings-section" id="close-friends">
+            <div class="settings-section-header" onclick="toggleSection(this)">
+                <div class="settings-section-title">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <span>Close Friends</span>
+                    <span class="settings-badge" id="cf-count">{{ close_friends.count }}</span>
+                </div>
+                <svg class="settings-chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,9 12,15 18,9"/></svg>
+            </div>
+            <div class="settings-section-body">
+                <p class="settings-info-text">People on your close friends list can see your exclusive stories and content.</p>
+
+                <!-- Search to add -->
+                <div class="cf-search-wrap">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    <input type="text" id="cf-search" placeholder="Search people..." autocomplete="off">
+                </div>
+                <div class="cf-search-results" id="cf-search-results"></div>
+
+                <!-- Current close friends list -->
+                <div class="cf-list" id="cf-list">
+                    {% for friend in close_friends %}
+                    <div class="cf-item" data-uid="{{ friend.id }}">
+                        <div class="cf-item-user">
+                            {% if friend.profile.profile_pic %}
+                            <img src="{{ friend.profile.profile_pic.url }}" class="cf-avatar" alt="">
+                            {% else %}
+                            <div class="cf-avatar-placeholder">{{ friend.username.0|upper }}</div>
+                            {% endif %}
+                            <span>{{ friend.username }}</span>
+                        </div>
+                        <button class="cf-remove-btn" onclick="toggleCloseFriend({{ friend.id }}, this)">Remove</button>
+                    </div>
+                    {% empty %}
+                    <p class="settings-empty" id="cf-empty">No close friends added yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tags and Mentions -->
+        <div class="settings-section" id="tags">
+            <div class="settings-section-header" onclick="toggleSection(this)">
+                <div class="settings-section-title">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                    <span>Tags and Mentions</span>
+                </div>
+                <svg class="settings-chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,9 12,15 18,9"/></svg>
+            </div>
+            <div class="settings-section-body">
+                <div class="settings-toggle-row">
+                    <div>
+                        <strong>Allow Tags From</strong>
+                        <p class="settings-info-text">Choose who can tag you in their posts and stories.</p>
+                    </div>
+                </div>
+                <div class="settings-radio-group">
+                    <label class="settings-radio">
+                        <input type="radio" name="allow_tags" value="everyone" {% if request.user.profile.allow_tags == 'everyone' %}checked{% endif %} onchange="saveSetting('allow_tags', this.value)"> Everyone
+                    </label>
+                    <label class="settings-radio">
+                        <input type="radio" name="allow_tags" value="following" {% if request.user.profile.allow_tags == 'following' %}checked{% endif %} onchange="saveSetting('allow_tags', this.value)"> People You Follow
+                    </label>
+                    <label class="settings-radio">
+                        <input type="radio" name="allow_tags" value="nobody" {% if request.user.profile.allow_tags == 'nobody' %}checked{% endif %} onchange="saveSetting('allow_tags', this.value)"> No One
+                    </label>
+                </div>
+                <div class="settings-save-indicator" id="tags-saved"></div>
+            </div>
+        </div>
+
+        <!-- Comments -->
+        <div class="settings-section" id="comments">
+            <div class="settings-section-header" onclick="toggleSection(this)">
+                <div class="settings-section-title">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <span>Comments</span>
+                </div>
+                <svg class="settings-chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,9 12,15 18,9"/></svg>
+            </div>
+            <div class="settings-section-body">
+                <div class="settings-toggle-row">
+                    <div>
+                        <strong>Allow Comments From</strong>
+                        <p class="settings-info-text">Control who can comment on your posts.</p>
+                    </div>
+                </div>
+                <div class="settings-radio-group">
+                    <label class="settings-radio">
+                        <input type="radio" name="allow_comments" value="everyone" {% if request.user.profile.allow_comments == 'everyone' %}checked{% endif %} onchange="saveSetting('allow_comments', this.value)"> Everyone
+                    </label>
+                    <label class="settings-radio">
+                        <input type="radio" name="allow_comments" value="following" {% if request.user.profile.allow_comments == 'following' %}checked{% endif %} onchange="saveSetting('allow_comments', this.value)"> People You Follow
+                    </label>
+                    <label class="settings-radio">
+                        <input type="radio" name="allow_comments" value="nobody" {% if request.user.profile.allow_comments == 'nobody' %}checked{% endif %} onchange="saveSetting('allow_comments', this.value)"> No One
+                    </label>
+                </div>
+                <div class="settings-save-indicator" id="comments-saved"></div>
+            </div>
+        </div>
+
+        <!-- Blocked -->
+        <div class="settings-section" id="blocked">
+            <div class="settings-section-header" onclick="toggleSection(this)">
+                <div class="settings-section-title">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                    <span>Blocked</span>
+                    <span class="settings-badge" id="blocked-count">{{ blocked_users.count }}</span>
+                </div>
+                <svg class="settings-chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,9 12,15 18,9"/></svg>
+            </div>
+            <div class="settings-section-body">
+                <p class="settings-info-text">Blocked accounts can't see your profile, posts, or stories and can't message you.</p>
+                <div class="cf-list" id="blocked-list">
+                    {% for bu in blocked_users %}
+                    <div class="cf-item" data-uid="{{ bu.id }}">
+                        <div class="cf-item-user">
+                            {% if bu.profile.profile_pic %}
+                            <img src="{{ bu.profile.profile_pic.url }}" class="cf-avatar" alt="">
+                            {% else %}
+                            <div class="cf-avatar-placeholder">{{ bu.username.0|upper }}</div>
+                            {% endif %}
+                            <span>{{ bu.username }}</span>
+                        </div>
+                        <button class="cf-remove-btn" onclick="unblockFromSettings({{ bu.id }}, this)">Unblock</button>
+                    </div>
+                    {% empty %}
+                    <p class="settings-empty" id="blocked-empty">No blocked users.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Stories -->
+        <div class="settings-section" id="stories">
+            <div class="settings-section-header" onclick="toggleSection(this)">
+                <div class="settings-section-title">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                    <span>Stories</span>
+                </div>
+                <svg class="settings-chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,9 12,15 18,9"/></svg>
+            </div>
+            <div class="settings-section-body">
+                <div class="settings-toggle-row">
+                    <div>
+                        <strong>Allow Sharing</strong>
+                        <p class="settings-info-text">Allow people to share your story as a message.</p>
+                    </div>
+                    <label class="settings-toggle">
+                        <input type="checkbox" checked disabled>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="settings-toggle-row" style="margin-top:12px;">
+                    <div>
+                        <strong>Save Story to Archive</strong>
+                        <p class="settings-info-text">Automatically save your stories after they disappear.</p>
+                    </div>
+                    <label class="settings-toggle">
+                        <input type="checkbox" checked disabled>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <p class="settings-info-text" style="opacity:0.6;margin-top:8px;">Coming soon</p>
+            </div>
+        </div>
+
+        <!-- Logout -->
+        <div class="settings-section settings-logout-section">
+            <a href="{% url 'logout' %}" class="settings-logout-btn">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                <span>Log Out</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Settings saved toast -->
+<div class="settings-toast" id="settings-toast">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#22c55e" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></svg>
+    <span id="toast-text">Saved</span>
+</div>
+
+<script>
+var csrfToken = '{{ csrf_token }}';
+
+function toggleSection(header) {
+    var section = header.closest('.settings-section');
+    section.classList.toggle('open');
+}
+
+function showSettingsToast(msg) {
+    var toast = document.getElementById('settings-toast');
+    var text = document.getElementById('toast-text');
+    text.textContent = msg || 'Saved';
+    toast.classList.add('show');
+    setTimeout(function() { toast.classList.remove('show'); }, 2000);
+}
+
+function saveSetting(key, value) {
+    var fd = new FormData();
+    fd.append('key', key);
+    fd.append('value', String(value));
+    fd.append('csrfmiddlewaretoken', csrfToken);
+    fetch('{% url "save_setting" %}', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.status === 'ok') showSettingsToast('Setting saved');
+        });
+}
+
+// Close Friends
+var cfSearchInput = document.getElementById('cf-search');
+var cfResults = document.getElementById('cf-search-results');
+var cfSearchTimer = null;
+
+if (cfSearchInput) {
+    cfSearchInput.addEventListener('input', function() {
+        clearTimeout(cfSearchTimer);
+        var q = this.value.trim();
+        if (q.length < 1) { cfResults.innerHTML = ''; return; }
+        cfSearchTimer = setTimeout(function() {
+            fetch('{% url "search_close_friends" %}?q=' + encodeURIComponent(q))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    cfResults.innerHTML = '';
+                    data.users.forEach(function(u) {
+                        var div = document.createElement('div');
+                        div.className = 'cf-search-item';
+                        div.innerHTML =
+                            '<div class="cf-item-user">' +
+                                (u.pic ? '<img src="' + u.pic + '" class="cf-avatar" alt="">' :
+                                    '<div class="cf-avatar-placeholder">' + u.username[0].toUpperCase() + '</div>') +
+                                '<span>' + u.username + '</span>' +
+                            '</div>' +
+                            '<button class="cf-add-btn ' + (u.is_close ? 'added' : '') + '" onclick="toggleCloseFriendFromSearch(' + u.id + ', this)">' +
+                                (u.is_close ? 'Remove' : 'Add') +
+                            '</button>';
+                        cfResults.appendChild(div);
+                    });
+                    if (!data.users.length) {
+                        cfResults.innerHTML = '<p class="settings-empty" style="padding:10px;">No users found</p>';
+                    }
+                });
+        }, 300);
+    });
+}
+
+function toggleCloseFriend(userId, btn) {
+    var fd = new FormData();
+    fd.append('user_id', userId);
+    fd.append('csrfmiddlewaretoken', csrfToken);
+    fetch('{% url "toggle_close_friend" %}', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.status === 'ok') {
+                if (!data.added) {
+                    var item = btn.closest('.cf-item');
+                    if (item) item.remove();
+                    showSettingsToast('Removed from close friends');
+                }
+                updateCfCount();
+            }
+        });
+}
+
+function toggleCloseFriendFromSearch(userId, btn) {
+    var fd = new FormData();
+    fd.append('user_id', userId);
+    fd.append('csrfmiddlewaretoken', csrfToken);
+    fetch('{% url "toggle_close_friend" %}', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.status === 'ok') {
+                if (data.added) {
+                    btn.textContent = 'Remove';
+                    btn.classList.add('added');
+                    showSettingsToast('Added to close friends');
+                } else {
+                    btn.textContent = 'Add';
+                    btn.classList.remove('added');
+                    showSettingsToast('Removed from close friends');
+                }
+                updateCfCount();
+                refreshCfList();
+            }
+        });
+}
+
+function updateCfCount() {
+    fetch('{% url "search_close_friends" %}?q=')
+        .then(function(r) { return r.json(); })
+        .then(function() {
+            // just reload the count from DOM by refetching page would be heavy,
+            // so we do a lightweight approach
+        });
+}
+
+function refreshCfList() {
+    fetch(window.location.href)
+        .then(function(r) { return r.text(); })
+        .then(function(html) {
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(html, 'text/html');
+            var newList = doc.getElementById('cf-list');
+            var newCount = doc.getElementById('cf-count');
+            if (newList) document.getElementById('cf-list').innerHTML = newList.innerHTML;
+            if (newCount) document.getElementById('cf-count').textContent = newCount.textContent;
+        });
+}
+
+function unblockFromSettings(userId, btn) {
+    var fd = new FormData();
+    fd.append('user_id', userId);
+    fd.append('csrfmiddlewaretoken', csrfToken);
+    fetch('{% url "toggle_block_user" %}', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.status === 'ok' && !data.blocked) {
+                var item = btn.closest('.cf-item');
+                if (item) item.remove();
+                showSettingsToast('User unblocked');
+                var countEl = document.getElementById('blocked-count');
+                var c = parseInt(countEl.textContent) - 1;
+                countEl.textContent = c < 0 ? 0 : c;
+                if (c <= 0) {
+                    document.getElementById('blocked-list').innerHTML = '<p class="settings-empty" id="blocked-empty">No blocked users.</p>';
+                }
+            }
+        });
+}
+</script>
+{% endblock %}

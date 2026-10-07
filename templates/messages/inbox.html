@@ -1,0 +1,39 @@
+{% extends 'base_app.html' %}
+
+{% block title %}Messages - Kizuna{% endblock %}
+
+{% block content %}
+<div class="messages-page">
+    <div class="messages-header">
+        <a href="{% url 'home' %}" class="back-btn" title="Back">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,19 5,12 12,5"/></svg>
+        </a>
+        <h2>Messages</h2>
+    </div>
+    <div class="conversation-list">
+        {% for item in conversations %}
+        <a href="{% url 'conversation' item.other.username %}" class="conversation-item {% if item.unread %}unread{% endif %}">
+            {% if item.other.profile.profile_pic %}
+                <img src="{{ item.other.profile.profile_pic.url }}" class="conv-avatar" alt="">
+            {% else %}
+                <div class="conv-avatar-placeholder">{{ item.other.username.0|upper }}</div>
+            {% endif %}
+            <div class="conv-info">
+                <strong>{{ item.other.username }}</strong>
+                {% if item.last_msg %}
+                <p class="conv-last-msg">{{ item.last_msg.content|truncatechars:40 }}</p>
+                {% endif %}
+            </div>
+            {% if item.unread %}
+            <span class="conv-badge">{{ item.unread }}</span>
+            {% endif %}
+        </a>
+        {% empty %}
+        <div class="empty-feed">
+            <h3>No conversations yet</h3>
+            <p>Visit a profile to start a conversation.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

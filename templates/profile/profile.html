@@ -1,0 +1,324 @@
+{% extends 'base_app.html' %}
+
+{% block title %}{{ profile_user.username }} - Kizuna{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <div class="page-header" style="margin-bottom:16px;">
+        <a href="{% url 'home' %}" class="back-btn" title="Back">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,19 5,12 12,5"/></svg>
+        </a>
+        <h2>{{ profile_user.username }}</h2>
+    </div>
+    <div class="profile-header">
+        <div class="profile-pic-large">
+            {% if user_profile.profile_pic %}
+                <img src="{{ user_profile.profile_pic.url }}" alt="{{ profile_user.username }}">
+            {% else %}
+                <div class="profile-pic-placeholder">{{ profile_user.username.0|upper }}</div>
+            {% endif %}
+        </div>
+        <div class="profile-info">
+            <div class="profile-top-row">
+                <h2>{{ profile_user.username }}</h2>
+                {% if profile_user == request.user %}
+                    <a href="{% url 'edit_profile' %}" class="btn-outline">Edit Profile</a>
+                    <button class="btn-outline" onclick="openShareProfileModal()" title="Share Profile">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg>
+                        Share
+                    </button>
+                    <a href="{% url 'settings' %}" class="btn-outline">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        Settings
+                    </a>
+                {% else %}
+                    {% if not is_blocked and not is_blocked_by %}
+                    <form method="post" action="{% url 'follow_user' profile_user.username %}">
+                        {% csrf_token %}
+                        {% if is_following %}
+                            <button type="submit" class="btn-outline">Unfollow</button>
+                        {% else %}
+                            <button type="submit" class="btn-post">Follow</button>
+                        {% endif %}
+                    </form>
+                    <a href="{% url 'conversation' profile_user.username %}" class="btn-outline">Message</a>
+                    {% endif %}
+                    <div class="profile-more-menu">
+                        <button class="btn-outline profile-more-btn" onclick="this.parentElement.classList.toggle('open')" title="More">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+                        </button>
+                        <div class="profile-more-dropdown">
+                            {% if not is_blocked %}
+                            <button class="pmd-item" onclick="openShareProfileModal()">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg>
+                                <span>Share Profile</span>
+                            </button>
+                            <button class="pmd-item" onclick="toggleCloseFriendProfile({{ profile_user.id }})">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="{% if is_close_friend %}var(--accent){% else %}none{% endif %}" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                <span id="cf-label">{% if is_close_friend %}Remove Close Friend{% else %}Add Close Friend{% endif %}</span>
+                            </button>
+                            {% endif %}
+                            <button class="pmd-item {% if is_blocked %}pmd-unblock{% else %}pmd-danger{% endif %}" onclick="toggleBlockProfile({{ profile_user.id }})">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                                <span id="block-label">{% if is_blocked %}Unblock{% else %}Block{% endif %}</span>
+                            </button>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="profile-stats">
+                <span><strong>{{ user_profile.posts_count }}</strong> posts</span>
+                <span><strong>{{ user_profile.followers_count }}</strong> followers</span>
+                <span><strong>{{ user_profile.following_count }}</strong> following</span>
+            </div>
+            {% if user_profile.bio %}
+            <p class="profile-bio">{{ user_profile.bio }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Highlights -->
+    <section class="highlights-section">
+        <div class="highlights-scroll">
+            {% if profile_user == request.user %}
+            <div class="highlight-item add-highlight">
+                <button class="highlight-circle add" onclick="document.getElementById('highlight-modal').classList.add('show')" title="New Highlight">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+                <span class="highlight-name">New</span>
+            </div>
+            {% endif %}
+            {% for hl in highlights %}
+            <a href="{% url 'view_highlight' hl.id %}" class="highlight-item">
+                <div class="highlight-ring">
+                    <div class="highlight-ring-inner">
+                        <img src="{{ hl.cover.url }}" alt="{{ hl.name }}">
+                    </div>
+                </div>
+                <span class="highlight-name">{{ hl.name|truncatechars:10 }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    {% if profile_user == request.user %}
+    <!-- Create Highlight Modal -->
+    <div class="modal" id="highlight-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>New Highlight</h3>
+                <button class="btn-icon" onclick="document.getElementById('highlight-modal').classList.remove('show')">&times;</button>
+            </div>
+            <form method="post" action="{% url 'create_highlight' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Name</label>
+                    {{ highlight_form.name }}
+                </div>
+                <div class="form-group">
+                    <label>Cover Image</label>
+                    {{ highlight_form.cover }}
+                </div>
+                <button type="submit" class="btn-post" style="width:100%">Create Highlight</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if is_blocked or is_blocked_by %}
+    <div class="private-profile-lock">
+        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+        {% if is_blocked %}
+        <h3>You blocked this user</h3>
+        <p>Unblock them to see their profile.</p>
+        {% else %}
+        <h3>This page isn't available</h3>
+        <p>The link you followed may be broken, or the page may have been removed.</p>
+        {% endif %}
+    </div>
+    {% elif is_private_locked %}
+    <div class="private-profile-lock">
+        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <h3>This Account is Private</h3>
+        <p>Follow this account to see their photos and videos.</p>
+    </div>
+    {% else %}
+    <div class="profile-posts-grid">
+        {% for post in posts %}
+        <a href="{% url 'post_detail' post.id %}" class="profile-post-thumb">
+            {% if post.image %}
+                <img src="{{ post.image.url }}" alt="Post" loading="lazy">
+            {% else %}
+                <div class="text-post-thumb">{{ post.caption|truncatechars:60 }}</div>
+            {% endif %}
+            <div class="post-thumb-overlay">
+                <span><svg viewBox="0 0 24 24" width="18" height="18" fill="white" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> {{ post.likes_count }}</span>
+                <span><svg viewBox="0 0 24 24" width="18" height="18" fill="white" stroke="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> {{ post.comments_count }}</span>
+            </div>
+        </a>
+        {% empty %}
+        <div class="empty-feed" style="grid-column: 1/-1;">
+            <h3>No posts yet</h3>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Share Profile Modal -->
+<div class="share-profile-modal" id="share-profile-modal">
+    <div class="share-profile-content">
+        <div class="share-profile-header">
+            <h3>Share Profile</h3>
+            <button class="btn-icon" onclick="closeShareProfileModal()">&times;</button>
+        </div>
+        <div class="share-profile-preview">
+            <div class="share-profile-card-preview">
+                {% if user_profile.profile_pic %}
+                    <img src="{{ user_profile.profile_pic.url }}" class="share-preview-avatar" alt="">
+                {% else %}
+                    <div class="share-preview-avatar-placeholder">{{ profile_user.username.0|upper }}</div>
+                {% endif %}
+                <div class="share-preview-info">
+                    <strong>{{ profile_user.username }}</strong>
+                    <span>{{ user_profile.followers_count }} followers &middot; {{ user_profile.posts_count }} posts</span>
+                </div>
+            </div>
+        </div>
+        <div class="share-profile-search-wrap">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="share-profile-search" placeholder="Search users to send to..." autocomplete="off">
+        </div>
+        <div class="share-profile-results" id="share-profile-results"></div>
+    </div>
+</div>
+
+<div class="profile-action-toast" id="profile-toast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.profile-more-menu')) {
+        document.querySelectorAll('.profile-more-menu.open').forEach(function(m) { m.classList.remove('open'); });
+    }
+});
+
+function showProfileToast(msg) {
+    var t = document.getElementById('profile-toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 2200);
+}
+
+function toggleCloseFriendProfile(userId) {
+    var fd = new FormData();
+    fd.append('user_id', userId);
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fetch('{% url "toggle_close_friend" %}', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        var label = document.getElementById('cf-label');
+        var svg = label.previousElementSibling;
+        if (data.added) {
+            label.textContent = 'Remove Close Friend';
+            svg.setAttribute('fill', 'var(--accent)');
+            showProfileToast('Added to Close Friends');
+        } else {
+            label.textContent = 'Add Close Friend';
+            svg.setAttribute('fill', 'none');
+            showProfileToast('Removed from Close Friends');
+        }
+        document.querySelector('.profile-more-menu').classList.remove('open');
+    });
+}
+
+function toggleBlockProfile(userId) {
+    var fd = new FormData();
+    fd.append('user_id', userId);
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fetch('{% url "toggle_block_user" %}', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.blocked) {
+            showProfileToast('User blocked');
+        } else {
+            showProfileToast('User unblocked');
+        }
+        setTimeout(function() { location.reload(); }, 800);
+    });
+}
+
+// Share Profile
+function openShareProfileModal() {
+    document.getElementById('share-profile-modal').classList.add('show');
+    document.getElementById('share-profile-search').value = '';
+    document.getElementById('share-profile-results').innerHTML = '';
+    document.querySelectorAll('.profile-more-menu.open').forEach(function(m) { m.classList.remove('open'); });
+    setTimeout(function() { document.getElementById('share-profile-search').focus(); }, 100);
+}
+
+function closeShareProfileModal() {
+    document.getElementById('share-profile-modal').classList.remove('show');
+}
+
+document.getElementById('share-profile-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeShareProfileModal();
+});
+
+var shareSearchTimer = null;
+document.getElementById('share-profile-search').addEventListener('input', function() {
+    clearTimeout(shareSearchTimer);
+    var q = this.value.trim();
+    var results = document.getElementById('share-profile-results');
+    if (q.length < 1) { results.innerHTML = ''; return; }
+    shareSearchTimer = setTimeout(function() {
+        fetch('{% url "search_users_api" %}?q=' + encodeURIComponent(q))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                results.innerHTML = '';
+                data.users.forEach(function(u) {
+                    var div = document.createElement('div');
+                    div.className = 'share-user-item';
+                    div.innerHTML =
+                        '<div class="share-user-info">' +
+                            (u.pic_url ? '<img src="' + u.pic_url + '" class="share-user-avatar" alt="">' :
+                                '<div class="share-user-avatar-placeholder">' + u.initial + '</div>') +
+                            '<span>' + u.username + '</span>' +
+                        '</div>' +
+                        '<button class="share-send-btn" onclick="shareProfileTo(\'' + u.username + '\', this)">Send</button>';
+                    results.appendChild(div);
+                });
+                if (!data.users.length) {
+                    results.innerHTML = '<p style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">No users found</p>';
+                }
+            });
+    }, 300);
+});
+
+function shareProfileTo(username, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    var fd = new FormData();
+    fd.append('username', username);
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fetch('{% url "share_profile_to_user" profile_user.username %}', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.status === 'ok') {
+                btn.textContent = 'Sent';
+                btn.classList.add('sent');
+                showProfileToast('Profile sent to ' + username);
+            } else {
+                btn.textContent = 'Send';
+                btn.disabled = false;
+            }
+        })
+        .catch(function() {
+            btn.textContent = 'Send';
+            btn.disabled = false;
+        });
+}
+</script>
+{% endblock %}

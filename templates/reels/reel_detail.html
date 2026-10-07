@@ -1,0 +1,108 @@
+{% extends 'base_app.html' %}
+
+{% block title %}{{ reel.user.username }}'s Reel - Kizuna{% endblock %}
+
+{% block content %}
+<div class="reel-detail-page">
+    <div class="page-header" style="margin-bottom:16px;">
+        <a href="{% url 'reels' %}" class="back-btn" title="Back">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,19 5,12 12,5"/></svg>
+        </a>
+        <h2>Reel</h2>
+    </div>
+
+    <div class="reel-card">
+        <div class="reel-video">
+            <video src="{{ reel.video.url }}" loop playsinline onclick="this.paused ? this.play() : this.pause()"></video>
+            <div class="reel-play-icon">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+            </div>
+        </div>
+        <div class="reel-info">
+            <div class="reel-info-header">
+                <a href="{% url 'profile' reel.user.username %}" class="reel-user">
+                    {% if reel.user.profile.profile_pic %}
+                        <img src="{{ reel.user.profile.profile_pic.url }}" class="reel-avatar" alt="">
+                    {% else %}
+                        <div class="reel-avatar-placeholder">{{ reel.user.username.0|upper }}</div>
+                    {% endif %}
+                    <strong>{{ reel.user.username }}</strong>
+                </a>
+                <div class="post-options">
+                    <button class="post-options-btn" onclick="this.parentElement.classList.toggle('open')" title="Options">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                    </button>
+                    <div class="post-options-menu">
+                        {% if reel.user == request.user %}
+                        <a href="{% url 'edit_reel' reel.id %}" class="post-opt-item">
+                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            Edit
+                        </a>
+                        <form method="post" action="{% url 'delete_reel' reel.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="post-opt-item post-opt-danger" onclick="return confirm('Delete this reel?')">
+                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                Delete
+                            </button>
+                        </form>
+                        {% else %}
+                        <button class="post-opt-item" onclick="this.closest('.post-options').classList.remove('open')">
+                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                            Report
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% if reel.caption %}<p class="reel-caption">{{ reel.caption }}</p>{% endif %}
+            <div class="reel-actions">
+                <a href="{% url 'like_reel' reel.id %}?next={% url 'reel_detail' reel.id %}" class="action-btn {% if liked %}liked{% endif %}">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="{% if liked %}#ed4956{% else %}none{% endif %}" stroke="{% if liked %}#ed4956{% else %}currentColor{% endif %}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    <span>{{ reel.likes_count }}</span>
+                </a>
+                <span class="action-btn">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <span>{{ reel.comments_count }}</span>
+                </span>
+                <a href="{% url 'save_reel' reel.id %}?next={% url 'reel_detail' reel.id %}" class="action-btn save-btn {% if saved %}saved{% endif %}" title="{% if saved %}Unsave{% else %}Save{% endif %}">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="{% if saved %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                </a>
+            </div>
+
+            <!-- All comments -->
+            <div class="reel-comments show">
+                {% for comment in reel.reel_comments.all %}
+                <div class="comment">
+                    <a href="{% url 'profile' comment.user.username %}"><strong>{{ comment.user.username }}</strong></a>
+                    {{ comment.text }}
+                </div>
+                {% empty %}
+                <div class="comment" style="color:var(--text-muted);">No comments yet.</div>
+                {% endfor %}
+                <form method="post" action="{% url 'comment_reel' reel.id %}" class="comment-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'reel_detail' reel.id %}">
+                    <input type="text" name="text" placeholder="Add a comment..." required>
+                    <button type="submit">Post</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.reel-video').forEach(function(container) {
+    var video = container.querySelector('video');
+    var icon = container.querySelector('.reel-play-icon');
+    video.addEventListener('play', function() { icon.style.display = 'none'; });
+    video.addEventListener('pause', function() { icon.style.display = 'flex'; });
+});
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.post-options')) {
+        document.querySelectorAll('.post-options.open').forEach(m => m.classList.remove('open'));
+    }
+});
+</script>
+{% endblock %}
