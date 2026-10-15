@@ -1,0 +1,27 @@
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local databases and backups
+db.sqlite3
+*.sqlite3
+*.bak
+Kizuna-Backup/
+recovery_with_ids.json
+local_kizuna_data.json
+render_before_restore*.json
+render_full_before_restore*.json
+data.json
+restore_kizuna.py
+restore_kizuna_preview_backup.py
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Generated files
+staticfiles/
